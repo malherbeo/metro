@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Métronome 60">
+    <title>Métronome 60 BPM</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            overflow: hidden;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        .metronome-container {
+            text-align: center;
+            padding: 20px;
+            max-width: 350px;
+            width: 90%;
+        }
+
+        .title {
+            font-size: 2.5em;
+            font-weight: 300;
+            margin-bottom: 40px;
+            opacity: 0.9;
+        }
+
+        .beat-display {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 40px auto;
+            font-size: 4em;
+            font-weight: bold;
+            transition: all 0.1s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .beat-display.active {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+
+        .controls {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            font-size: 1.2em;
+            font-weight: 600;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .start-btn {
+            background: rgba(76, 175, 80, 0.9);
+            color: white;
+            border: 3px solid rgba(76, 175, 80, 1);
+            padding: 25px 50px;
+            font-size: 1.8em;
+            font-weight: 700;
+        }
+
+        .start-btn:hover {
+            background: rgba(76, 175, 80, 1);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .stop-btn {
+            background: rgba(244, 67, 54, 0.9);
+            color: white;
+            border: 3px solid rgba(244, 67, 54, 1);
+            padding: 25px 50px;
+            font-size: 1.8em;
+            font-weight: 700;
+        }
+
+        .stop-btn:hover {
+            background: rgba(244, 67, 54, 1);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(244, 67, 54, 0.4);
+        }
+
+        .info {
+            font-size: 1.1em;
+            opacity: 0.8;
+            margin-bottom: 20px;
+        }
+
+        .counter {
+            font-size: 1.3em;
+            font-weight: 600;
+            opacity: 0.9;
+        }
+
+        @media (max-width: 480px) {
+            .title {
+                font-size: 2em;
+            }
+            
+            .beat-display {
+                width: 160px;
+                height: 160px;
+                font-size: 3em;
+            }
+            
+            .btn {
+                padding: 12px 24px;
+                font-size: 1.1em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="metronome-container">
+        <h1 class="title">Métronome 60</h1>
+        
+        <div class="beat-display" id="beatDisplay">♪</div>
+        
+        <div class="info">60 BPM • Mesures à 4 temps</div>
+        
+        <div class="controls">
+            <button class="btn start-btn" id="startBtn">Démarrer</button>
+            <button class="btn stop-btn" id="stopBtn">Arrêter</button>
+        </div>
+        
+        <div class="counter" id="counter">Prêt à démarrer</div>
+        
+        <div style="margin-top: 30px; padding: 20px; background: rgba(255,255,255,0.1); border-radius: 15px; backdrop-filter: blur(10px);">
+            <h3 style="margin-bottom: 15px; font-size: 1.2em;">📖 Guide d'utilisation</h3>
+            
+            <div style="text-align: left; font-size: 0.9em; line-height: 1.5; margin-bottom: 20px;">
+                <h4 style="margin-bottom: 10px; color: #FFD700;">🎵 Le métronome :</h4>
+                <p style="margin-bottom: 8px;">• <strong>TIC</strong> aigu = 1er temps de chaque mesure</p>
+                <p style="margin-bottom: 8px;">• <strong>toc toc toc</strong> graves = temps 2, 3, 4</p>
+                <p style="margin-bottom: 15px;">• Animation dorée sur le premier temps</p>
+                
+                <h4 style="margin-bottom: 10px; color: #FFD700;">⚡ Optimisations vitesse :</h4>
+                <p style="margin-bottom: 8px;">• Audio pré-chargé et contexte activé</p>
+                <p style="margin-bottom: 8px;">• Pipeline audio "réchauffé"</p>
+                <p style="margin-bottom: 8px;">• Démarrage en <strong>100-200ms max</strong></p>
+                <h4 style="margin-bottom: 10px; color: #FFD700;">🚀 Raccourci iPhone :</h4>
+                <p style="margin-bottom: 8px;">1. <strong>Copiez l'URL</strong> ci-dessous</p>
+                <p style="margin-bottom: 8px;">2. <strong>Ouvrez "Raccourcis"</strong> sur iPhone</p>
+                <p style="margin-bottom: 8px;">3. <strong>Appuyez sur "+"</strong> (nouveau raccourci)</p>
+                <p style="margin-bottom: 8px;">4. <strong>Cherchez "Ouvrir l'URL"</strong> et ajoutez</p>
+                <p style="margin-bottom: 8px;">5. <strong>Collez l'URL</strong> dans le champ</p>
+                <p style="margin-bottom: 8px;">6. <strong>Nommez "Métronome"</strong> et sauvegardez</p>
+                <p style="margin-bottom: 8px;">7. <strong>Ajoutez à l'écran d'accueil</strong></p>
+                <p style="margin-bottom: 15px;">8. <strong>Un tap = Start/Stop !</strong> 🎯</p>
+            </div>
+            
+            <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; font-family: monospace; font-size: 0.75em; word-break: break-all; margin-bottom: 10px;">
+                <span id="autoStartUrl">Chargement de l'URL...</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class UltraReactiveMetronome {
+            constructor() {
+                this.audioContext = null;
+                this.isRunning = false;
+                this.beatCount = 0;
+                this.nextBeatTime = 0;
+                this.lookahead = 25.0; // Lookahead en millisecondes
+                this.scheduleAheadTime = 0.1; // Programmer 100ms à l'avance
+                this.timerID = null;
+                this.bpm = 60;
+                
+                this.beatDisplay = document.getElementById('beatDisplay');
+                this.startBtn = document.getElementById('startBtn');
+                this.stopBtn = document.getElementById('stopBtn');
+                this.counter = document.getElementById('counter');
+                
+                // Gestion globale de l'état pour les raccourcis
+                this.setupGlobalState();
+                
+                this.initAudio();
+                this.bindEvents();
+            }
+            
+            setupGlobalState() {
+                // Utiliser sessionStorage pour détecter si une instance tourne déjà
+                // (mais pas pour stocker des données, juste pour la détection)
+                this.stateKey = 'metronome_state_' + Date.now();
+                
+                // Écouter les changements d'état entre onglets/instances
+                window.addEventListener('storage', (e) => {
+                    if (e.key === 'metronome_control') {
+                        if (e.newValue === 'stop_all') {
+                            this.stop();
+                        }
+                    }
+                });
+                
+                // Nettoyer en fermant
+                window.addEventListener('beforeunload', () => {
+                    if (this.isRunning) {
+                        localStorage.removeItem('metronome_running');
+                    }
+                });
+            }
+            
+            async initAudio() {
+                try {
+                    // Créer le contexte audio avec latence ultra-minimale
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                        latencyHint: 'interactive',
+                        sampleRate: 44100
+                    });
+                    
+                    // Forcer l'activation immédiate du contexte audio
+                    if (this.audioContext.state === 'suspended') {
+                        await this.audioContext.resume();
+                    }
+                    
+                    // Pré-générer les sons immédiatement
+                    this.createTickSound();
+                    
+                    // Pré-charger en créant des sources temporaires (warm-up)
+                    this.warmUpAudio();
+                    
+                } catch (error) {
+                    console.warn('Web Audio API non supportée:', error);
+                }
+            }
+            
+            warmUpAudio() {
+                // Créer et connecter des sources pour "réchauffer" l'audio
+                const dummySource1 = this.audioContext.createBufferSource();
+                const dummySource2 = this.audioContext.createBufferSource();
+                const gainNode = this.audioContext.createGain();
+                
+                dummySource1.buffer = this.tickBufferHigh;
+                dummySource2.buffer = this.tickBufferLow;
+                
+                gainNode.gain.value = 0; // Volume à 0 pour ne pas entendre
+                
+                dummySource1.connect(gainNode);
+                dummySource2.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+                
+                // Jouer silencieusement pour initialiser le pipeline audio
+                dummySource1.start(this.audioContext.currentTime);
+                dummySource2.start(this.audioContext.currentTime + 0.1);
+            }
+            
+            createTickSound() {
+                // Créer deux sons : TIC aigu (temps 1) et TOC grave (temps 2,3,4)
+                // Toutes les fréquences augmentées pour des sons plus aigus
+                
+                // SON AIGU - Premier temps de la mesure (fréquences doublées)
+                this.tickBufferHigh = this.audioContext.createBuffer(1, 3307, 44100);
+                const dataHigh = this.tickBufferHigh.getChannelData(0);
+                
+                for (let i = 0; i < 3307; i++) {
+                    const t = i / 44100;
+                    const envelope = Math.exp(-t * 50) * (t < 0.005 ? t * 200 : 1);
+                    
+                    // Fréquences beaucoup plus aigües pour le premier temps
+                    const woodResonance1 = Math.sin(2 * Math.PI * 1600 * t) * 0.6; // 800 → 1600Hz
+                    const woodResonance2 = Math.sin(2 * Math.PI * 2400 * t) * 0.4; // 1200 → 2400Hz
+                    const woodResonance3 = Math.sin(2 * Math.PI * 1200 * t) * 0.2; // 600 → 1200Hz
+                    
+                    const impactNoise = (Math.random() - 0.5) * 0.3 * Math.exp(-t * 120);
+                    const woodDecay = Math.sin(2 * Math.PI * 2000 * t) * 0.2 * Math.exp(-t * 60); // 1000 → 2000Hz
+                    
+                    dataHigh[i] = (woodResonance1 + woodResonance2 + woodResonance3 + impactNoise + woodDecay) * envelope * 0.5;
+                }
+                
+                // SON GRAVE - Temps 2, 3, 4 (fréquences augmentées mais moins aigües que le premier)
+                this.tickBufferLow = this.audioContext.createBuffer(1, 3307, 44100);
+                const dataLow = this.tickBufferLow.getChannelData(0);
+                
+                for (let i = 0; i < 3307; i++) {
+                    const t = i / 44100;
+                    const envelope = Math.exp(-t * 60) * (t < 0.005 ? t * 200 : 1);
+                    
+                    // Fréquences plus aigües pour les autres temps
+                    const woodResonance1 = Math.sin(2 * Math.PI * 800 * t) * 0.6;  // 300 → 800Hz
+                    const woodResonance2 = Math.sin(2 * Math.PI * 1200 * t) * 0.3; // 600 → 1200Hz
+                    const woodResonance3 = Math.sin(2 * Math.PI * 400 * t) * 0.3;  // 150 → 400Hz
+                    
+                    const impactNoise = (Math.random() - 0.5) * 0.4 * Math.exp(-t * 100);
+                    const woodDecay = Math.sin(2 * Math.PI * 1000 * t) * 0.2 * Math.exp(-t * 40); // 400 → 1000Hz
+                    
+                    dataLow[i] = (woodResonance1 + woodResonance2 + woodResonance3 + impactNoise + woodDecay) * envelope * 0.4;
+                }
+            }
+            
+            playTick() {
+                if (!this.audioContext) return;
+                
+                // Déterminer le type de son selon le temps de la mesure
+                const beatInMeasure = (this.beatCount % 4) + 1;
+                const isFirstBeat = beatInMeasure === 1;
+                
+                // Créer une nouvelle source pour chaque tick
+                const source = this.audioContext.createBufferSource();
+                const gainNode = this.audioContext.createGain();
+                
+                source.buffer = isFirstBeat ? this.tickBufferHigh : this.tickBufferLow;
+                source.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+                gainNode.gain.value = isFirstBeat ? 0.9 : 0.7;
+                
+                source.start(this.audioContext.currentTime);
+            }
+            
+            scheduler() {
+                // Programmer tous les beats qui doivent jouer dans les prochaines millisecondes
+                while (this.nextBeatTime < this.audioContext.currentTime + this.scheduleAheadTime) {
+                    this.scheduleNote(this.nextBeatTime);
+                    this.nextNote();
+                }
+                
+                this.timerID = setTimeout(() => this.scheduler(), this.lookahead);
+            }
+            
+            scheduleNote(time) {
+                // Déterminer quel son jouer selon le temps de la mesure
+                const beatInMeasure = (this.beatCount % 4) + 1;
+                const isFirstBeat = beatInMeasure === 1;
+                
+                // Programmer le son approprié
+                const source = this.audioContext.createBufferSource();
+                const gainNode = this.audioContext.createGain();
+                
+                source.buffer = isFirstBeat ? this.tickBufferHigh : this.tickBufferLow;
+                source.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+                gainNode.gain.value = isFirstBeat ? 0.9 : 0.7; // Premier temps plus fort
+                
+                source.start(time);
+                
+                // Programmer l'animation visuelle
+                const delay = (time - this.audioContext.currentTime) * 1000;
+                setTimeout(() => this.visualBeat(isFirstBeat), Math.max(0, delay));
+            }
+            
+            nextNote() {
+                const secondsPerBeat = 60.0 / this.bpm;
+                this.nextBeatTime += secondsPerBeat;
+                this.beatCount++;
+            }
+            
+            visualBeat(isFirstBeat = false) {
+                // Animation du cercle avec couleur différente pour le premier temps
+                this.beatDisplay.classList.add('active');
+                if (isFirstBeat) {
+                    this.beatDisplay.style.borderColor = 'rgba(255, 215, 0, 0.9)'; // Doré pour le premier temps
+                    this.beatDisplay.style.background = 'rgba(255, 215, 0, 0.2)';
+                } else {
+                    this.beatDisplay.style.borderColor = 'rgba(255, 255, 255, 0.8)';
+                    this.beatDisplay.style.background = 'rgba(255, 255, 255, 0.3)';
+                }
+                
+                setTimeout(() => {
+                    this.beatDisplay.classList.remove('active');
+                    this.beatDisplay.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                    this.beatDisplay.style.background = 'rgba(255, 255, 255, 0.1)';
+                }, 150);
+                
+                // Mise à jour du compteur avec indication du temps dans la mesure
+                const beatInMeasure = (this.beatCount % 4) + 1;
+                const measureNumber = Math.floor((this.beatCount - 1) / 4) + 1;
+                this.counter.textContent = `Measure ${measureNumber} - Beat ${beatInMeasure}/4`;
+                
+                // Changer l'icône selon le temps
+                const icons = ['🥁', '♪', '♫', '♬'];
+                this.beatDisplay.textContent = icons[beatInMeasure - 1];
+            }
+            
+            async start() {
+                if (this.isRunning) return;
+                
+                // Arrêter toutes les autres instances
+                localStorage.setItem('metronome_control', 'stop_all');
+                setTimeout(() => localStorage.removeItem('metronome_control'), 100);
+                
+                // Réactiver le contexte audio si nécessaire (requis sur mobile)
+                if (this.audioContext.state === 'suspended') {
+                    await this.audioContext.resume();
+                }
+                
+                this.isRunning = true;
+                this.beatCount = 0;
+                this.nextBeatTime = this.audioContext.currentTime;
+                
+                // Marquer qu'une instance tourne
+                localStorage.setItem('metronome_running', Date.now().toString());
+                
+                // Démarrage INSTANTANÉ - jouer le premier beat immédiatement
+                this.playTick();
+                this.visualBeat();
+                this.nextNote();
+                
+                // Démarrer le scheduler pour les beats suivants
+                this.scheduler();
+                
+                this.startBtn.style.display = 'none';
+                this.stopBtn.style.display = 'inline-block';
+            }
+            
+            stop() {
+                if (!this.isRunning) return;
+                
+                this.isRunning = false;
+                clearTimeout(this.timerID);
+                
+                // Supprimer le marqueur d'instance active
+                localStorage.removeItem('metronome_running');
+                
+                this.beatDisplay.classList.remove('active');
+                this.beatDisplay.textContent = '♪';
+                this.counter.textContent = `Stopped after ${this.beatCount} beats`;
+                
+                this.startBtn.style.display = 'inline-block';
+                this.stopBtn.style.display = 'none';
+            }
+            
+            bindEvents() {
+                this.startBtn.addEventListener('click', () => this.start());
+                this.stopBtn.addEventListener('click', () => this.stop());
+                
+                // Raccourcis clavier
+                document.addEventListener('keydown', (e) => {
+                    if (e.code === 'Space') {
+                        e.preventDefault();
+                        if (this.isRunning) {
+                            this.stop();
+                        } else {
+                            this.start();
+                        }
+                    }
+                });
+                
+                // Masquer le bouton stop au début
+                this.stopBtn.style.display = 'none';
+            }
+        }
+        
+        // Pré-initialisation ULTRA-RAPIDE
+        let quickMetronome = null;
+        
+        // Initialisation immédiate dès que possible
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeMetronome);
+        } else {
+            initializeMetronome();
+        }
+        
+        function initializeMetronome() {
+            quickMetronome = new UltraReactiveMetronome();
+            
+            // Vérifier si on doit démarrer automatiquement (pour les raccourcis iOS)
+            const urlParams = new URLSearchParams(window.location.search);
+            const autoStart = urlParams.get('autostart') === 'true';
+            
+            if (autoStart) {
+                // Vérifier si une instance tourne déjà
+                const isAlreadyRunning = localStorage.getItem('metronome_running');
+                
+                if (isAlreadyRunning) {
+                    // Arrêter toutes les instances INSTANTANÉMENT
+                    localStorage.setItem('metronome_control', 'stop_all');
+                    setTimeout(() => {
+                        localStorage.removeItem('metronome_control');
+                        quickMetronome.counter.textContent = 'Stopped via shortcut';
+                    }, 50);
+                } else {
+                    // DÉMARRAGE INSTANTANÉ - pas d'attente
+                    // Forcer l'activation du contexte audio d'abord
+                    if (quickMetronome.audioContext && quickMetronome.audioContext.state === 'suspended') {
+                        quickMetronome.audioContext.resume().then(() => {
+                            quickMetronome.start();
+                            quickMetronome.counter.textContent = 'Started via shortcut';
+                        });
+                    } else {
+                        // Démarrer immédiatement si le contexte est déjà actif
+                        quickMetronome.start();
+                        quickMetronome.counter.textContent = 'Started via shortcut';
+                    }
+                }
+            } else {
+                // Message d'aide normal
+                setTimeout(() => {
+                    if (!quickMetronome.isRunning) {
+                        quickMetronome.counter.textContent = 'Press START or [Space]';
+                    }
+                }, 2000);
+            }
+            
+            // Générer l'URL de démarrage automatique (invisible à l'utilisateur)
+            const currentUrl = window.location.href.split('?')[0];
+            const autoStartUrl = currentUrl + '?autostart=true';
+            console.log('iPhone shortcut URL:', autoStartUrl);
+        }
+    </script>
+</body>
+</html>
