@@ -488,36 +488,83 @@
         function initializeMetronome() {
             quickMetronome = new UltraReactiveMetronome();
             
-            // Vérifier si on doit démarrer automatiquement (pour les raccourcis iOS)
+            // Debug pour voir les paramètres URL
             const urlParams = new URLSearchParams(window.location.search);
+            console.log('All URL params:', urlParams.toString());
+            console.log('autostart param:', urlParams.get('autostart'));
+            
+            // Vérifier si on doit démarrer automatiquement (pour les raccourcis iOS)
             const autoStart = urlParams.get('autostart') === 'true';
+            console.log('Should auto start:', autoStart);
             
             if (autoStart) {
+                console.log('AUTO START DETECTED!');
+                
                 // Vérifier si une instance tourne déjà
                 const isAlreadyRunning = localStorage.getItem('metronome_running');
                 
                 if (isAlreadyRunning) {
-                    // Arrêter toutes les instances INSTANTANÉMENT
+                    console.log('Stopping existing instance');
                     localStorage.setItem('metronome_control', 'stop_all');
                     setTimeout(() => {
                         localStorage.removeItem('metronome_control');
                         quickMetronome.counter.textContent = 'Stopped via shortcut';
                     }, 50);
                 } else {
-                    // DÉMARRAGE INSTANTANÉ - pas d'attente
-                    // Forcer l'activation du contexte audio d'abord
-                    if (quickMetronome.audioContext && quickMetronome.audioContext.state === 'suspended') {
-                        quickMetronome.audioContext.resume().then(() => {
-                            quickMetronome.start();
-                            quickMetronome.counter.textContent = 'Started via shortcut';
-                        });
-                    } else {
-                        // Démarrer immédiatement si le contexte est déjà actif
+                    console.log('Auto-starting: simulating user interaction');
+                    
+                    // SOLUTION : Créer un overlay invisible qui capture le premier clic
+                    const autoStartOverlay = document.createElement('div');
+                    autoStartOverlay.style.cssText = `
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background: rgba(0,0,0,0.8);
+                        z-index: 10000;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        cursor: pointer;
+                        color: white;
+                        font-size: 2em;
+                        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+                        text-align: center;
+                        backdrop-filter: blur(5px);
+                    `;
+                    autoStartOverlay.innerHTML = `
+                        <div>
+                            <div style="font-size: 3em; margin-bottom: 20px;">🎵</div>
+                            <div>Tap to start metronome</div>
+                            <div style="font-size: 0.7em; margin-top: 10px; opacity: 0.8;">Auto-launched via shortcut</div>
+                        </div>
+                    `;
+                    
+                    document.body.appendChild(autoStartOverlay);
+                    
+                    // Démarrer le métronome au premier clic/tap
+                    autoStartOverlay.addEventListener('click', async () => {
+                        console.log('User tapped - starting metronome');
+                        
+                        // Activer le contexte audio avec l'interaction utilisateur
+                        if (quickMetronome.audioContext.state === 'suspended') {
+                            await quickMetronome.audioContext.resume();
+                        }
+                        
+                        // Supprimer l'overlay
+                        document.body.removeChild(autoStartOverlay);
+                        
+                        // Démarrer le métronome
                         quickMetronome.start();
                         quickMetronome.counter.textContent = 'Started via shortcut';
-                    }
+                    });
+                    
+                    // Message pour indiquer qu'on attend l'interaction
+                    quickMetronome.counter.textContent = 'Tap screen to start';
                 }
             } else {
+                console.log('No auto start - normal mode');
                 // Message d'aide normal
                 setTimeout(() => {
                     if (!quickMetronome.isRunning) {
